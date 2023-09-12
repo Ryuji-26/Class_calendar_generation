@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授業スケジュール登録</title>
+</head>
+<body>
+
+<h2>授業スケジュール登録</h2>
+<br>
+<form id="classForm">
+    <label>授業のタイトル: <input type="text" id="title"></label><br>
+    <label>時限:
+        <select id="period">
+            <option value="09:00-10:40">1時限: 09:00-10:40</option>
+            <option value="10:55-12:35">2時限: 10:55-12:35</option>
+            <option value="13:20-15:00">3時限: 13:20-15:00</option>
+            <option value="15:15-16:55">4時限: 15:15-16:55</option>
+            <option value="17:10-18:50">5時限: 17:10-18:50</option>
+        </select>
+    </label><br>
+    <label>第一回の開始日: <input type="date" id="startDate" value="2023-09-18"></label><br>
+    <input type="button" value="日程を生成" onclick="generateDates()">
+</form>
+
+<h3>授業日時一覧:</h3>
+<ul id="datesList"></ul>
+
+<a href="#" id="downloadLink" style="display:none;">iCalendar形式でダウンロード</a>
+
+<script>
+    function generateDates() {
+        const title = document.getElementById("title").value;
+        const [startTime, endTime] = document.getElementById("period").value.split("-");
+        const startDate = new Date(document.getElementById("startDate").value);
+        const datesList = document.getElementById("datesList");
+        const downloadLink = document.getElementById("downloadLink");
+        
+        // Define the class dates and exclusion dates
+        const endDate = new Date("2024-01-15");
+        const exclusionStart1 = new Date("2023-11-02");
+        const exclusionEnd1 = new Date("2023-11-08");
+        const exclusionStart2 = new Date("2023-12-25");
+        const exclusionEnd2 = new Date("2024-01-08");
+        let classDates = [];
+        
+        for(let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 7)) {
+            if (!((d >= exclusionStart1 && d <= exclusionEnd1) || (d >= exclusionStart2 && d <= exclusionEnd2))) {
+                classDates.push(new Date(d));
+            }
+        }
+
+        // Display class dates
+        datesList.innerHTML = '';
+        classDates.forEach(date => {
+            const li = document.createElement("li");
+            li.textContent = `${title} - ${date.toISOString().split('T')[0]} ${startTime} - ${endTime}`;
+            datesList.appendChild(li);
+        });
+
+        // Generate iCalendar content
+        let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Your Organization//Your App v1.0//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Class Schedule\r\nX-WR-TIMEZONE:Asia/Tokyo\r\n";
+
+        classDates.forEach((date, index) => {
+            icsContent += `
+BEGIN:VEVENT
+DTSTART:${date.toISOString().split('T')[0].replace(/-/g, '')}T${startTime.replace(/:/g, '')}00
+DTEND:${date.toISOString().split('T')[0].replace(/-/g, '')}T${endTime.replace(/:/g, '')}00
+SUMMARY:${title}
+END:VEVENT\r\n`;
+        });
+
+        icsContent += "END:VCALENDAR";
+
+        // Create download link for iCalendar
+        const blob = new Blob([icsContent], {type: "text/calendar"});
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = `${title}.ics`;
+        downloadLink.style.display = "block";
+    }
+</script>
+
+
+</body>
+</html>
